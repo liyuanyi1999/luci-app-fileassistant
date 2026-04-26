@@ -1,6 +1,6 @@
-name: Build fileassistant A53 (Fixed olddefconfig)
+name: Build fileassistant A53 (SDK 方式)
 on:
-  workflow_dispatch
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,38 +10,28 @@ jobs:
 
       - name: 安装依赖
         run: |
-          sudo apt update && sudo apt install -y build-essential flex bison gawk git libssl-dev libncurses-dev gettext unzip wget
+          sudo apt update && sudo apt install -y build-essential flex bison gawk libssl-dev libncurses-dev wget unzip
 
-      - name: 拉取 OpenWrt 23.05 源码 + 插件
+      - name: 下载 A53 架构的 OpenWrt SDK
         run: |
-          git clone https://github.com/openwrt/openwrt -b openwrt-23.05 --depth=1 openwrt
-          cd openwrt/package
+          wget https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/64/openwrt-sdk-23.05.3-armvirt-64_gcc-12.3.0-musl.Linux-x86_64.tar.xz
+          tar -xf openwrt-sdk-*.tar.xz
+          mv openwrt-sdk-* openwrt-sdk
+          cd openwrt-sdk/package
           git clone https://github.com/liyuanyi1999/luci-app-fileassistant.git
 
-      - name: 初始化 feeds
+      - name: 配置 SDK
         run: |
-          cd openwrt
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-      - name: 配置（标准方式生成，不手动写死）
-        run: |
-          cd openwrt
-          make defconfig
-          # 用 make config 自动配置，避免手动写死 .config 导致的 olddefconfig 失败
+          cd openwrt-sdk
           echo "CONFIG_PACKAGE_luci-app-fileassistant=m" >> .config
           echo "CONFIG_LUCI_CSSTIDY=n" >> .config
-          # 关键：不手动指定 TARGET，用默认的 armvirt_64 即可适配 A53
           make defconfig
 
-      - name: 下载依赖
-        run: cd openwrt && make download -j4
-
-      - name: 编译插件（单线程，方便看日志）
-        run: cd openwrt && make package/luci-app-fileassistant/compile V=s -j1
+      - name: 编译插件
+        run: cd openwrt-sdk && make package/luci-app-fileassistant/compile V=s -j1
 
       - name: 上传 IPK
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-fileassistant_A53
-          path: openwrt/bin/packages/aarch64_cortex-a53/luci/*.ipk
+          path: openwrt-sdk/bin/packages/aarch64_cortex-a53/luci/*.ipk
