@@ -14,9 +14,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Package
-        uses: unifreq/openwrt-package-builder@main
+        # 更换了工具地址，使用 sbwml 维护的版本
+        uses: sbwml/openwrt-package-builder@main
         with:
-          # 指定 A53 架构（注意这里是下划线）
+          # 架构保持不变
           target: aarch64_cortex_a53
-          # 指定 OpenWrt 版本
+          # 版本保持不变
           openwrt_version: 23.05
