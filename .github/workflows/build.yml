@@ -1,6 +1,6 @@
-name: Build fileassistant A53 (Fixed csstidy)
+name: Build fileassistant A53 (Fixed olddefconfig)
 on:
-  workflow_dispatch:
+  workflow_dispatch
 
 jobs:
   build:
@@ -8,11 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装编译依赖
+      - name: 安装依赖
         run: |
-          sudo apt update && sudo apt install -y build-essential flex bison gawk git libssl-dev libncurses-dev gettext unzip wget libz-dev libssl-dev
+          sudo apt update && sudo apt install -y build-essential flex bison gawk git libssl-dev libncurses-dev gettext unzip wget
 
-      - name: 拉取 OpenWrt 23.05 源码
+      - name: 拉取 OpenWrt 23.05 源码 + 插件
         run: |
           git clone https://github.com/openwrt/openwrt -b openwrt-23.05 --depth=1 openwrt
           cd openwrt/package
@@ -24,26 +24,23 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 配置（锁定A53架构 + 禁用CSS压缩）
+      - name: 配置（标准方式生成，不手动写死）
         run: |
           cd openwrt
           make defconfig
-          # 强制AArch64 Cortex-A53
-          echo "CONFIG_TARGET_armvirt=y" >> .config
-          echo "CONFIG_TARGET_armvirt_64=y" >> .config
-          echo "CONFIG_CPU_TYPE_CORTEX_A53=y" >> .config
-          # 禁用 csstidy 压缩，避免依赖失败
-          echo "CONFIG_LUCI_CSSTIDY=n" >> .config
+          # 用 make config 自动配置，避免手动写死 .config 导致的 olddefconfig 失败
           echo "CONFIG_PACKAGE_luci-app-fileassistant=m" >> .config
-          make olddefconfig
+          echo "CONFIG_LUCI_CSSTIDY=n" >> .config
+          # 关键：不手动指定 TARGET，用默认的 armvirt_64 即可适配 A53
+          make defconfig
 
       - name: 下载依赖
         run: cd openwrt && make download -j4
 
-      - name: 编译插件（单线程编译，方便看日志）
+      - name: 编译插件（单线程，方便看日志）
         run: cd openwrt && make package/luci-app-fileassistant/compile V=s -j1
 
-      - name: 上传IPK
+      - name: 上传 IPK
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-fileassistant_A53
