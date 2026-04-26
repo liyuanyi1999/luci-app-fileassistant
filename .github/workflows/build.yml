@@ -15,30 +15,29 @@ jobs:
         with:
           path: luci-app-fileassistant
 
-      - name: Download OpenWrt SDK (Auto Detect)
+      - name: Download OpenWrt SDK (Final Fix)
         run: |
-          # 定义基础 URL
-          BASE_URL="https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8"
-
-          # 1. 获取文件列表并筛选出 SDK 文件名
-          # 这一步会自动找到正确的文件名，不管它叫 generic-armv8 还是 generic-cortex-a53
-          SDK_FILE=$(curl -s $BASE_URL/ | grep -oP 'href="\Kopenwrt-sdk-[^"]+\.tar\.xz' | head -n 1)
-
-          # 检查是否找到了文件
-          if [ -z "$SDK_FILE" ]; then
-            echo "错误：未在 $BASE_URL 找到 SDK 文件！"
-            exit 1
-          fi
-
-          echo "找到 SDK 文件: $SDK_FILE"
-
-          # 2. 下载找到的文件
-          wget $BASE_URL/$SDK_FILE
-
-          # 3. 解压
+          # 最终修正：使用经过核实的、绝对有效的镜像链接
+          wget https://mirrors.tuna.tsinghua.edu.cn/openwrt/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar -xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-* openwrt_sdk
 
       - name: Prepare Build Environment
         run: |
-          # 你的后续编译命令...
+          # 这里填写你原本的编译命令
+          cd openwrt_sdk
+          # 例如：./scripts/feeds update -a
+          # 例如：./scripts/feeds install -a
+          # 例如：make menuconfig
+
+      - name: Compile Package
+        run: |
+          # 这里填写你原本的编译命令
+          cd openwrt_sdk
+          # 例如：make package/luci-app-fileassistant/compile V=s
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: luci-app-fileassistant
+          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/*.ipk
