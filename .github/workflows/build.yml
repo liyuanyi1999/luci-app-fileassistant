@@ -27,17 +27,19 @@ jobs:
           cd openwrt_sdk
           # 更新 feeds
           ./scripts/feeds update -a
-          # 创建软链接，将插件代码链接到 package 目录
-          ln -s ../../luci-app-fileassistant package/luci-app-fileassistant
+          # 安装 feeds (如果需要)
+          # ./scripts/feeds install -a
 
       - name: Compile Package
         run: |
           cd openwrt_sdk
-          # 开始编译插件
+          # 将插件链接到 package 目录
+          ln -s ../../luci-app-fileassistant package/luci-app-fileassistant
+          # 编译插件
           make package/luci-app-fileassistant/compile V=s
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-fileassistant
-          path: openwrt_sdk/bin/packages/aarch64_generic/base/*.ipk
+          path: openwrt_sdk/bin/packages/aarch64_generic/base/luci-app-fileassistant_*.ipk
