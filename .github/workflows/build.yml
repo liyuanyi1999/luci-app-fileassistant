@@ -1,0 +1,22 @@
+name: Build luci-app-fileassistant for A53
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Package
+        uses: unifreq/openwrt-package-builder@main
+        with:
+          # 指定 A53 架构（注意这里是下划线）
+          target: aarch64_cortex_a53
+          # 指定 OpenWrt 版本
+          openwrt_version: 23.05
