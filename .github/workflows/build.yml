@@ -1,45 +1,54 @@
 name: Build luci-app-fileassistant
 
 on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+  workflow_dispatch:  # 手动触发
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Plugin Code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: luci-app-fileassistant
 
-      - name: Download OpenWrt SDK (Filename Fixed)
+      - name: Install dependencies
         run: |
-          # 核心修正：去掉了文件名中间的 _gcc-12.3.0 部分，这才是真实的文件名
-          wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_musl.Linux-x86_64.tar.xz
-          tar -xf openwrt-sdk-*.tar.xz
-          mv openwrt-sdk-* openwrt_sdk
+          sudo apt update
+          sudo apt install -y build-essential clang flex libncurses5-dev gawk git libssl-dev gettext libz-dev wget unzip python3 python3-pip
 
-      - name: Prepare Build Environment
+      - name: Clone OpenWrt source
         run: |
-          cd openwrt_sdk
-          # 更新 feeds
+          git clone https://github.com/openwrt/openwrt -b openwrt-23.05 --depth=1 openwrt
+
+      - name: Add luci-app-fileassistant
+        run: |
+          cd openwrt/package
+          git clone https://github.com/liyuanyi1999/luci-app-fileassistant.git
+
+      - name: Update feeds
+        run: |
+          cd openwrt
           ./scripts/feeds update -a
-          # 安装 feeds (如果需要)
-          # ./scripts/feeds install -a
+          ./scripts/feeds install -a
 
-      - name: Compile Package
+      - name: Config
         run: |
-          cd openwrt_sdk
-          # 将插件链接到 package 目录
-          ln -s ../../luci-app-fileassistant package/luci-app-fileassistant
-          # 编译插件
-          make package/luci-app-fileassistant/compile V=s
+          cd openwrt
+          make defconfig
+          # 启用插件
+          echo "CONFIG_PACKAGE_luci-app-fileassistant=m" >> .config
 
-      - name: Upload Artifact
+      - name: Download
+        run: |
+          cd openwrt
+          make download -j$(nproc)
+
+      - name: Compile
+        run: |
+          cd openwrt
+          make package/luci-app-fileassistant/compile V=s -j$(nproc)
+
+      - name: Upload ipk
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-fileassistant
-          path: openwrt_sdk/bin/packages/aarch64_generic/base/luci-app-fileassistant_*.ipk
+          path: openwrt/bin/packages/*/luci/luci-app-fileassistant*.ipk
