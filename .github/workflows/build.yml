@@ -19,11 +19,7 @@ jobs:
         run: |
           # 核心修正：去掉了文件名中间的 _gcc-12.3.0 部分，这才是真实的文件名
           wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_musl.Linux-x86_64.tar.xz
-          
-          # 解压
           tar -xf openwrt-sdk-*.tar.xz
-          
-          # 重命名文件夹方便后续操作
           mv openwrt-sdk-* openwrt_sdk
 
       - name: Prepare Build Environment
@@ -31,6 +27,17 @@ jobs:
           cd openwrt_sdk
           # 更新 feeds
           ./scripts/feeds update -a
-          # 安装 feeds
-          ./scripts/feeds install -a
-          # 这里可以继续添加你的编译命令
+          # 创建软链接，将插件代码链接到 package 目录
+          ln -s ../../luci-app-fileassistant package/luci-app-fileassistant
+
+      - name: Compile Package
+        run: |
+          cd openwrt_sdk
+          # 开始编译插件
+          make package/luci-app-fileassistant/compile V=s
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-fileassistant
+          path: openwrt_sdk/bin/packages/aarch64_generic/base/*.ipk
