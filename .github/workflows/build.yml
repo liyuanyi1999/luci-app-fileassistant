@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Package
-        uses: openwrt/gh-action-sdk@v5
-        env:
-          # 修改点：使用通用的基础镜像，而不是特定架构的镜像
-          ARCH: aarch64_cortex-a53
+        uses: unifreq/openwrt-package-builder@master
+        with:
           # 指定 OpenWrt 版本
-          OPENWRT_VERSION: 23.05
+          openwrt_version: 23.05
+          # 指定目标架构
+          target: aarch64_cortex-a53
