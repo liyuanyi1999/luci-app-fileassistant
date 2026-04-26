@@ -1,4 +1,4 @@
-name: Build luci-app-fileassistant
+name: Build luci-app-fileassistant for A53
 
 on:
   push:
@@ -15,10 +15,10 @@ jobs:
         with:
           path: luci-app-fileassistant
 
-      - name: Download OpenWrt SDK
+      - name: Download OpenWrt SDK (Using Tsinghua Mirror)
         run: |
-          # 使用修正后的 SDK 链接 (generic-armv8)
-          wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          # 使用清华镜像站下载，速度和稳定性更好
+          wget https://mirrors.tuna.tsinghua.edu.cn/openwrt/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar -xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-* openwrt_sdk
 
@@ -29,18 +29,18 @@ jobs:
           ./scripts/feeds update -a
           # 安装 feeds (如果需要)
           # ./scripts/feeds install -a
-          # 复制插件到 package 目录
-          ln -s $GITHUB_WORKSPACE/luci-app-fileassistant package/luci-app-fileassistant
 
       - name: Compile Package
         run: |
           cd openwrt_sdk
-          # 这里根据你的需求调整编译命令
-          make defconfig
+          # 将你的插件链接到 package 目录
+          ln -s $GITHUB_WORKSPACE/luci-app-fileassistant package/luci-app-fileassistant
+
+          # 开始编译
           make package/luci-app-fileassistant/compile V=s
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4 # 这里已更新为 v4
+        uses: actions/upload-artifact@v4
         with:
-          name: luci-app-fileassistant-ipk
-          path: openwrt_sdk/bin/packages/*/base/luci-app-fileassistant_*.ipk
+          name: luci-app-fileassistant
+          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/base/luci-app-fileassistant_*.ipk
