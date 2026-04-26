@@ -17,36 +17,28 @@ jobs:
 
       - name: Download OpenWrt SDK
         run: |
-          # 修正了这里的下载链接，指向 cortex-a53
-          wget https://downloads.openwrt.org/releases/23.05.0/targets/rockchip/armv8/openwrt-sdk-23.05.0-rockchip-armv8_cortex-a53_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          # 这里修正了路径，使用 generic 而不是 rockchip
+          wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_cortex-a53_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar -xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-* openwrt_sdk
 
       - name: Prepare Build Environment
         run: |
-          # 将你的插件复制到 SDK 的 package 目录
+          # 将插件代码复制到 SDK 的 package 目录
           cp -r luci-app-fileassistant openwrt_sdk/package/
-
-          # 进入 SDK 目录
-          cd openwrt_sdk
-
-          # 更新 feeds
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-          # 配置编译选项（只编译你的插件）
-          echo "CONFIG_PACKAGE_luci-app-fileassistant=m" >> .config
-          make defconfig
 
       - name: Compile Package
         run: |
           cd openwrt_sdk
-          # 开始编译，-j$(nproc) 表示使用所有CPU核心加速
-          make package/luci-app-fileassistant/compile -j$(nproc)
+          # 更新 feed
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          # 编译插件
+          make package/luci-app-fileassistant/compile V=s
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ipk
-          # 修正了这里的路径查找规则，使用通配符匹配具体架构文件夹
-          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/packages/luci-app-fileassistant_*.ipk
+          # 这里修正了路径中的下划线问题，确保能找到 .ipk 文件
+          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/base/luci-app-fileassistant_*.ipk
