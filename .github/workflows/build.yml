@@ -10,15 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Plugin Code
         uses: actions/checkout@v4
+        with:
+          path: luci-app-fileassistant # 将插件代码检出到单独目录
 
-      - name: Build Package
-        uses: openwrt/gh-action-sdk@v5
-        env:
-          # 使用通用的基础镜像
-          ARCH: aarch64_cortex-a53
-          # 指定 OpenWrt 版本
-          OPENWRT_VERSION: 23.05
-          # 禁用刷新检查，避免一些网络问题
-          NO_REFRESH_CHECK: true
+      - name: Download OpenWrt SDK
+        run: |
+          # 下载 OpenWrt 23.05 的 SDK
+          wget https://downloads.openwrt.org/releases/23.05.0/targets/armsr/armv8/openwrt-sdk-23.05.0-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          # 解压 SDK
+          tar -xf openwrt-sdk-23.05.0-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          # 重命名文件夹，方便后续操作
+          mv openwrt-sdk-23.05.0-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64 openwrt_sdk
+
+      - name: Prepare Build Environment
+        run: |
+          # 进入 SDK 目录
+          cd openwrt_sdk
+          # 将你的插件复制到 package 目录
+          cp -r ../luci-app-fileassistant package/
+          # 更新 feeds
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          # 配置编译选项
+          echo "CONFIG_PACKAGE_luci-app-fileassistant=m" >> .config
+          make defconfig
+
+      - name: Compile Package
+        run: |
+          # 进入 SDK 目录并开始编译
+          cd openwrt_sdk
+          make package/luci-app-fileassistant/compile V=s
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-fileassistant
+          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/packages/luci-app-fileassistant_*.ipk
