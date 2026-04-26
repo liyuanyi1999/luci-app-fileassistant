@@ -17,23 +17,23 @@ jobs:
 
       - name: Download OpenWrt SDK
         run: |
-          # 已核实：文件名中去掉了 armv8，路径为 generic/cortex-a53
-          wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/cortex-a53/openwrt-sdk-23.05.0-generic-cortex-a53_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          # 最终修正：文件名是 generic-armv8，而不是 generic-cortex-a53
+          wget https://downloads.openwrt.org/releases/23.05.0/targets/generic/armv8/openwrt-sdk-23.05.0-generic-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           tar -xf openwrt-sdk-*.tar.xz
           mv openwrt-sdk-* openwrt_sdk
 
       - name: Prepare Build Environment
         run: |
-          # 复制插件到 SDK 目录
-          cp -rf luci-app-fileassistant openwrt_sdk/package/
-          # 更新 feeds
-          cd openwrt_sdk
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          # 将插件代码复制到 SDK 的 package 目录
+          mkdir -p openwrt_sdk/package/luci-app-fileassistant
+          cp -r luci-app-fileassistant/* openwrt_sdk/package/luci-app-fileassistant/
 
       - name: Compile Package
         run: |
           cd openwrt_sdk
+          # 更新 feeds
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
           # 编译插件
           make package/luci-app-fileassistant/compile V=s
 
@@ -41,5 +41,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-fileassistant
-          # 注意：这里路径根据 SDK 解压后的标准结构设定
-          path: openwrt_sdk/bin/packages/aarch64_cortex-a53/packages/luci-app-fileassistant_*.ipk
+          path: |
+            openwrt_sdk/bin/packages/*/base/luci-app-fileassistant_*.ipk
+            openwrt_sdk/bin/targets/*/*/luci-app-fileassistant_*.ipk
