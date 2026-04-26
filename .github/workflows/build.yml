@@ -7,15 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Build Package
-        # 使用支持国内网络优化的构建脚本
-        uses: unifreq/openwrt-package-builder@main
-        with:
-          target: aarch64_cortex_a53
-          openwrt_version: 23.05
+        uses: openwrt/gh-action-sdk@v5
+        env:
+          # 指定架构和版本，对应 23.05 版本的 A53
+          ARCH: aarch64_cortex-a53-23.05
+          FEEDNAME: packages_ci
+          NO_REFRESH_CHECK: true
